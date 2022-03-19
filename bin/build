@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+layers_dir="$1"
+env_dir="$2/env"
+plan_dir="$3"
+
+sdk_dir="${layers_dir}/google-cloud-sdk"
+cache_dir="${layers_dir}/cache"
+build_dir="$(realpath "${layers_dir}/..")"
+
+echo "---> Google Cloud SDK Buildpack"
+
+default_sdk_version="377.0.0"
+if [ -r "${env_dir}/GOOGLE_CLOUD_SDK_VERSION" ]; then
+	sdk_version="$(cat "${env_dir}/GOOGLE_CLOUD_SDK_VERSION")"
+else
+	sdk_version="${default_sdk_version}"
+fi
+
+mkdir -p "${cache_dir}"
+echo -e '[types]\ncache = true\nlaunch = true' >"${layers_dir}/cache.toml"
+
+download_file="google-cloud-sdk-${sdk_version}-linux-x86_64.tar.gz"
+local_file="google-cloud-sdk.tar.gz"
+existing_version="none"
+
+if [ -r "${cache_dir}/VERSION" ]; then
+	existing_version="$(cat "${cache_dir}/VERSION")"
+fi
+
+if [[ -r "${cache_dir}/${local_file}" && "${existing_version}" == "${sdk_version}" ]]; then
+	echo "Found google-cloud-sdk v${existing_version} in cache, skipping download"
+else
+	echo "---> Downloading google-cloud-sdk v${sdk_version} to cache"
+	curl -fSo "${cache_dir}/${local_file}" "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/${download_file}"
+	echo -n "${sdk_version}" >"${cache_dir}/VERSION"
+fi
+mkdir -p "${sdk_dir}"
+echo -e '[types]\nlaunch = true' >"${layers_dir}/google-cloud-sdk.toml"
+
+echo "---> Unarchiving google-cloud-sdk v${sdk_version}"
+tar zxf "${cache_dir}/${local_file}" --directory "${sdk_dir}" --strip-components=1
+
+echo "---> Installing google-cloud-sdk v${sdk_version}"
+"${sdk_dir}/install.sh" --usage-reporting=false --path-update=false --bash-completion=false
+
+echo "---> Update profile settings"
+mkdir -p "${layers_dir}/build/profile.d"
+echo -e '[types]\nlaunch = true\nbuild = true' >"${layers_dir}/build.toml"
+cat >"${layers_dir}/build/profile.d/google-cloud-sdk.sh" <<EOF
+	. "${sdk_dir}/path.bash.inc"
+EOF
