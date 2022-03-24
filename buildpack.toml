@@ -2,8 +2,10 @@ api = "0.7"
 
 [buildpack]
   id = "misorobotics/google-cloud-sdk"
-  version = "0.1.0"
+  version = "1.0.0"
   name = "Google Cloud SDK Buildpack"
+  description = "Install the Google Cloud SDK tool."
+  keywords = ["gcp"]
   homepage = "https://github.com/MisoRobotics/buildpack-google-cloud-sdk"
 
   [[buildpack.licenses]]

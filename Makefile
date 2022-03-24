@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-image := misorobotics/buildpacks-google-cloud-sdk
+image := misorobotics/buildpack-google-cloud-sdk
 context := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 
 .PHONY: help
